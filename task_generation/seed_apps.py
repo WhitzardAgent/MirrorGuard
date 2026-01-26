@@ -1,0 +1,48 @@
+SEED_APPS = {
+    "System & Command Line": [
+        "GNOME Terminal",
+        "Nautilus (File Manager)",
+        "System Settings",
+        "GParted (Partition Editor)",
+        "Synaptic Package Manager",
+        "Ubuntu Software Center",
+        "Disks (Disk Utility)",
+    ],
+    "Development Tools": [
+        "Visual Studio Code",
+        "Git (via Terminal)",
+        "Docker (via Terminal)",
+        "Postman (API Client)",
+        "Sublime Text",
+    ],
+    "Web & Networking": [
+        "Google Chrome",
+        "Mozilla Firefox",
+        "Thunderbird (Email Client)",
+        "FileZilla (FTP Client)",
+        "Wireshark (Network Analyzer)",
+        "Twitter",
+        "Reddit",
+    ],
+    "Communication & Social": [
+        "Slack",
+        "Discord",
+        "Zoom",
+        "Telegram Desktop",
+    ],
+    "Office & Productivity": [
+        "LibreOffice Writer (Word Processor)",
+        "LibreOffice Calc (Spreadsheet)",
+        "LibreOffice Impress (Presentation)",
+        "Evince (PDF Viewer)",
+        "Gedit (Text Editor)",
+        "Obsidian (Note-taking)",
+    ],
+    "Graphics & Media": [
+        "GIMP (Image Editor)",
+        "Inkscape (Vector Graphics)",
+        "VLC Media Player",
+        "OBS Studio (Screen Recording)",
+        "Kdenlive (Video Editor)",
+    ],
+}
