@@ -31,7 +31,7 @@ This repository contains both the training-side pipeline and OSWorld-style integ
 
 MirrorGuard is released as a WhitzardAgent project and should remain attributable to the Fudan University and Shanghai Innovation Institute (SII) team behind the work.
 
-Most importantly, the released [WhitzardAgent/MirrorGuard](https://huggingface.co/WhitzardAgent/MirrorGuard) model is not a separate artifact disconnected from this codebase. It is the final **VLM** trained on reasoning-correction data produced by the MirrorWorld synthesis and dataset-generation pipeline in this repository.
+Most importantly, the released [WhitzardAgent/MirrorGuard](https://huggingface.co/WhitzardAgent/MirrorGuard) model is the final **VLM** trained on reasoning-correction data produced by the MirrorWorld synthesis and dataset-generation pipeline in this repository.
 
 ## From Code To Model
 
