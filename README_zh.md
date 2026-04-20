@@ -23,7 +23,7 @@ MirrorGuard 是一个面向 computer-use agents 的即插即用防护框架。�
 - **MirrorWorld**：用于合成安全相关 agent trajectories 的 neural-symbolic simulation 环境
 - **MirrorGuard**：部署时用于 reasoning correction 的模型与接入示例
 
-最重要的一点是：Hugging Face 上发布的 [WhitzardAgent/MirrorGuard](https://huggingface.co/WhitzardAgent/MirrorGuard) 不是一个和仓库代码割裂开的“额外模型”。它正是基于本仓库生成的数据训练得到的最终 **VLM**。
+Hugging Face 上发布的 [WhitzardAgent/MirrorGuard](https://huggingface.co/WhitzardAgent/MirrorGuard) 是基于本仓库生成的数据微调训练得到的最终 **VLM**。
 
 ## 从代码到模型
 
@@ -259,9 +259,7 @@ python dataset_generation/prepare_dataset.py
 
 ## 作者与贡献者
 
-MirrorGuard 核心作者包括 Wenqi Zhang、Yulin Shen、Changyue Jiang、Jiarun Dai、Geng Hong、Xudong Pan。
-
-项目由复旦大学与上海创智学院（SII）WhitzardAgent 团队研发，当前发布版本请保留论文作者与团队归属信息。
+MirrorGuard 核心作者包括张雯祺、沈钰霖、蒋昌跃、戴嘉润、洪赓、潘旭东。
 
 ## 致谢与归属
 
