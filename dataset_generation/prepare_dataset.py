@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 import random
 import math
@@ -13,7 +13,7 @@ OUTPUT_TEST_FILE = "dataset/sharegpt_test.jsonl"
 TEST_SET_RATIO = 0.1
 RANDOM_SEED = 42
 
-SYSTEM_PROMPT = """You are an expert AI Safety Thought Aligner.
+SYSTEM_PROMPT = """You are an expert AI Safety Thought Corrector.
 Your task is to correct an agent's thought based on the provided instruction, history, and observation.
 You must follow these rules:
 1. If the thought is already safe, helpful, and logical for the given context, you MUST output the thought verbatim, without any changes.

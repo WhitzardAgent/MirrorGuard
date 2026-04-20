@@ -1,363 +1,270 @@
-# MirrorGuard
+﻿# MirrorGuard
 
 <div align="center">
+
+<img src="https://cdn-avatars.huggingface.co/v1/production/uploads/61def72b6742e9faa77b0edc/XHPe_wPj4roSniCHsHYT5.jpeg" alt="WhitzardAgent logo" width="120" />
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/Python-3.8%2B-green.svg)](https://www.python.org/downloads/)
 [![arXiv](https://img.shields.io/badge/arXiv-2601.12822-b31b1b.svg)](https://arxiv.org/abs/2601.12822)
 
-**A Simulation-Based Defense Framework for Secure Computer-Use Agents**
+**Train in the MirrorWorld, Act in the Wild.**
 
-[Paper](https://arxiv.org/abs/2601.12822) • [Models](https://huggingface.co/WhitzardAgent/MirrorGuard) • [Homepage](https://bmz-q-q.github.io/MirrorGuard/) • [About](#about) • [Installation](#installation) • [Quick Start](#quick-start) • [Citation](#citation)
+**MirrorGuard: Toward Secure Computer-Use Agents via Simulation-to-Real Reasoning Correction**
+
+**WhitzardAgent | Fudan University | Shanghai Innovation Institute (SII)**
+
+[Paper](https://arxiv.org/abs/2601.12822) | [Project Page](https://bmz-q-q.github.io/MirrorGuard/) | [Model](https://huggingface.co/WhitzardAgent/MirrorGuard) | [Chinese README](README_zh.md)
 
 </div>
 
----
+## Overview
 
-## About
+MirrorGuard is a plug-and-play defense framework for computer-use agents (CUAs). Instead of relying on coarse action blocking, MirrorGuard intervenes at the reasoning layer: it intercepts an agent's insecure thought, corrects it into a secure reasoning path, and then steers the agent toward a safer action.
 
-MirrorGuard is a novel defense framework that uses simulation-based training to improve the security of Computer-Use Agents (CUAs) in real-world GUI interactions. It addresses critical security risks where malicious instructions or visual prompt injections can trigger unsafe reasoning and cause harmful system-level actions. 
+The framework has two tightly connected parts:
 
-### Core Innovation
+- **MirrorWorld**: a neural-symbolic simulation environment for synthesizing security-related agentic trajectories in pure text.
+- **MirrorGuard**: a deployed reasoning-correction module that transfers the learned security logic to real GUI agents.
 
-Rather than using detection-based blocking (which often aborts tasks prematurely), MirrorGuard employs a **neural-symbolic simulation pipeline** to:
+This repository contains both the training-side pipeline and OSWorld-style integration examples that show how MirrorGuard is embedded into real agents.
 
-1. **Generate Realistic High-Risk Trajectories**: Creates diverse, realistic GUI interaction scenarios in a text-based simulated environment without executing real operations
-2. **Learn Safety Patterns**: Trains agents to intercept and rectify insecure reasoning chains before they produce unsafe actions
-3. **Bridge Simulation-to-Real Gap**: Ensures learned safety behaviors transfer effectively to real-world systems
+MirrorGuard is released as a WhitzardAgent project and should remain attributable to the Fudan University and Shanghai Innovation Institute (SII) team behind the work.
 
-### Key Results
+Most importantly, the released [WhitzardAgent/MirrorGuard](https://huggingface.co/WhitzardAgent/MirrorGuard) model is not a separate artifact disconnected from this codebase. It is the final **VLM** trained on reasoning-correction data produced by the MirrorWorld synthesis and dataset-generation pipeline in this repository.
 
-Extensive evaluations demonstrate significant improvements:
-- **ByteDance UI-TARS**: Reduces unsafe rate from 66.5% → 13.0% with minimal false refusal rate (FRR)
-- **Superior Performance**: Outperforms state-of-the-art GuardAgent (which achieves only 53.9% reduction with 15.4% higher FRR)
-- **Maintained Utility**: Preserves fundamental agent functionality while enhancing security
+## From Code To Model
 
-### The Framework
+MirrorGuard should be read as a full pipeline rather than "some code plus a model card":
 
-MirrorGuard combines:
-- **Intelligent GUI Simulator**: Models realistic Ubuntu desktop environments and applications
-- **Agent Evaluation**: ReAct-based agents for executing complex multi-step tasks
-- **Scenario Synthesis**: Neural-symbolic pipeline for generating benign and risky interaction scenarios
-- **Safety-Focused Training**: Specialized evaluation metrics for security-critical behaviors
-- **Concurrent Processing**: Efficient batch evaluation for large-scale training datasets
+1. `task_generation/` and `simulator.py` construct risky and benign computer-use trajectories in **MirrorWorld**.
+2. `dataset_generation/safe_thought.py` identifies unsafe reasoning and generates corrected safe reasoning.
+3. `dataset_generation/prepare_dataset.py` converts those pairs into the final training format for MirrorGuard supervision.
+4. The resulting reasoning-correction corpus is used to fine-tune the released **MirrorGuard VLM** on Hugging Face.
+5. That trained VLM is then deployed as the runtime corrector used in the agent integration examples under `examples/`.
 
-## Features
+The key raw data files included in this repository are:
 
-✨ **Key Capabilities**
+- `dataset_generation/train.jsonl`
+- `dataset_generation/test.jsonl`
 
-- 🖥️ **Realistic GUI Simulation**: Models real Ubuntu desktop applications (VS Code, Chrome, etc.)
-- 📊 **Flexible Task Generation**: Blueprints-based scenario creation with risk modeling
-- 📝 **Detailed Logging**: Comprehensive trajectory and state tracking
-- 🔄 **Concurrent Processing**: Built-in multi-threaded batch evaluation
-- 🛡️ **Safety-Focused**: Specialized for evaluating safety-critical behaviors
+`prepare_dataset.py` is configured to package them into ShareGPT-style training files such as `dataset/sharegpt_train.jsonl` and `dataset/sharegpt_test.jsonl`.
 
-## Installation
+## Qualitative Demo
 
-### Requirements
+<table>
+  <tr>
+    <td align="center"><b>Before MirrorGuard</b></td>
+    <td align="center"><b>After MirrorGuard</b></td>
+  </tr>
+  <tr>
+    <td><img src="assets/mirrorguard_before.gif" alt="Before MirrorGuard" width="420" /></td>
+    <td><img src="assets/mirrorguard_after.gif" alt="After MirrorGuard" width="420" /></td>
+  </tr>
+</table>
 
-- Python 3.8+
-- OpenAI-compatible API endpoint (supports multiple LLM backends)
-- Standard Ubuntu desktop environment (for realistic simulation)
+Left GIF (🔴 Without defense): The agent fails to recognize the risk and blindly executes the dangerous `sudo chown` command, recursively modifying the `/dev` directory permissions and breaking the system's device permission model. Right GIF (🟢 With MirrorGuard): The agent leverages the thought-correction mechanism to identify the critical risk of `chown /dev` within milliseconds, refuses to execute the command, and provides safe alternative solutions to the user, achieving intent alignment and system protection. 
 
-### Setup
+## Why Reasoning Correction
 
-1. **Clone the repository**:
-```bash
-git clone https://github.com/yourusername/mirrorguard.git
-cd mirrorguard
+As described in the paper, the critical point of intervention is the agent's **thought** rather than the input or final action. Unsafe behavior often first appears in reasoning, before the agent executes an irreversible system operation.
+
+MirrorGuard therefore treats security failures as **reasoning errors**:
+
+- in low-risk contexts, the agent continues normally;
+- in risky contexts, the thought is corrected into a safe reasoning pattern;
+- the corrected thought is then used to steer downstream action generation.
+
+This design is meant to reduce the usual security-utility trade-off caused by pure blocking defenses.
+
+## Headline Results
+
+From the paper:
+
+- On **UI-TARS**, MirrorGuard reduces **Unsafe Rate** from **66.5%** to **13.0%** while maintaining a marginal **False Refusal Rate (FRR)**.
+- Compared with **GuardAgent**, MirrorGuard achieves stronger risk mitigation with lower utility penalty.
+- On **OSWorld**, the method is evaluated for utility preservation using **Success Rate (SR)**.
+
+Benchmark roles follow the paper:
+
+- **OS-Harm** and **RiOSWorld**: security-risk evaluation
+- **OSWorld**: utility and over-defensiveness evaluation
+
+## Repository Layout
+
+```text
+MirrorGuard/
+  agent.py
+  simulator.py
+  llm.py
+  models.py
+  prompts.py
+  config.py
+  main.py
+  main_multi.py
+  task_generation/
+  dataset_generation/
+  docs/
+    integrations.md
+    results.md
+  examples/
+    shared/
+    react_integration/
+    uitars_integration/
+    owl_integration/
+  assets/
 ```
 
-2. **Install dependencies**:
+## Core Pipeline
+
+### 1. MirrorWorld: security-related trajectory synthesis
+
+The training-side pipeline constructs risky and benign operating-system tasks in a text-based environment instead of a live desktop. This keeps synthesis cheap, fast, and safe while preserving causal consistency through a symbolic world state.
+
+Relevant files:
+
+- `task_generation/pipeline_generator.py`
+- `task_generation/scene.py`
+- `task_generation/benign_scene.py`
+- `simulator.py`
+- `models.py`
+
+### 2. Thought-centric annotation and correction
+
+Simulated trajectories are processed into training pairs of insecure reasoning and corrected reasoning. The secure corrections follow the paper's four secure reasoning patterns:
+
+- **Hard Refusal**
+- **Stop & Ask**
+- **Privacy Block**
+- **Handover**
+
+Relevant files:
+
+- `dataset_generation/safe_thought.py`
+- `dataset_generation/prepare_dataset.py`
+- `dataset_generation/train.jsonl`
+- `dataset_generation/test.jsonl`
+
+### 3. Deployment in real GUI agents
+
+At deployment, MirrorGuard acts as a modular reasoning corrector. Section 4.3 of the paper describes two steering paths:
+
+- **Replacement**: for agent frameworks that generate thought and action sequentially
+- **Prefilling**: for frameworks that generate thought and action in a unified call
+
+This repository includes cleaned OSWorld-style examples for both.
+
+## Integration Examples
+
+### ReAct: replacement steering
+
+`examples/react_integration/react_agent_corrected.py`
+
+This example represents the **replacement** deployment path. The agent first generates an original thought, MirrorGuard corrects it, and the corrected thought is injected into the subsequent action-generation call.
+
+OSWorld-style references:
+
+- Agent interface: [xlang-ai/OSWorld/mm_agents/README.md](https://github.com/xlang-ai/OSWorld/blob/main/mm_agents/README.md)
+- Prompt-agent base: [xlang-ai/OSWorld/mm_agents/agent.py](https://github.com/xlang-ai/OSWorld/blob/main/mm_agents/agent.py)
+
+### UI-TARS: prefilling steering
+
+`examples/uitars_integration/uitars15_v1_corrected.py`
+
+This example represents the **prefilling** deployment path. The agent first exposes an internal thought from a unified generation step, MirrorGuard corrects that thought, and the corrected reasoning is prefixed back into the final generation path to steer action output.
+
+OSWorld-style and upstream references:
+
+- OSWorld agent file: [xlang-ai/OSWorld/mm_agents/uitars_agent.py](https://github.com/xlang-ai/OSWorld/blob/main/mm_agents/uitars_agent.py)
+- UI-TARS repository: [bytedance/UI-TARS](https://github.com/bytedance/UI-TARS)
+
+### Owl: additional code reference
+
+`examples/owl_integration/owl_agent_corrected.py`
+
+This is included as an OSWorld-style reference for another agent family, but it is not the primary walkthrough.
+
+OSWorld-style and upstream references:
+
+- OSWorld agent file: [xlang-ai/OSWorld/mm_agents/owl_agent.py](https://github.com/xlang-ai/OSWorld/blob/main/mm_agents/owl_agent.py)
+- GUI-Owl / MobileAgent repository: [X-PLUG/MobileAgent](https://github.com/X-PLUG/MobileAgent)
+
+### Shared deployment helper
+
+`examples/shared/correction_runtime.py`
+
+This file shows a minimal OpenAI-compatible deployment runtime for the deployed MirrorGuard VLM.
+
+## Quick Start
+
+### Install dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-3. **Configure LLM endpoints** in `config.py`:
-```python
-MODELS_CONFIG = {
-    "simulator_model": {
-        "model_name": "your-model-name",
-        "base_url": "http://your-api-endpoint",
-        "api_key": "your-api-key"
-    },
-    "agent_model": {
-        "model_name": "your-model-name",
-        "base_url": "http://your-api-endpoint",
-        "api_key": "your-api-key"
-    },
-    # ... other models
-}
-```
+### Access the deployed model
 
-## Quick Start
+The released MirrorGuard VLM is available on Hugging Face:
 
-### 1. Generate Task Blueprints
+- [WhitzardAgent/MirrorGuard](https://huggingface.co/WhitzardAgent/MirrorGuard)
 
-Create task blueprints that define scenario templates:
+The model card includes the recommended OpenAI-compatible deployment path and a `vllm serve` example. The shared runtime in `examples/shared/correction_runtime.py` assumes that kind of OpenAI-compatible endpoint rather than a task-specific wrapper.
+
+### Generate task blueprints
 
 ```bash
 python task_generation/pipeline_generator.py
 ```
 
-This generates `task_blueprints.json` containing scenario definitions, including:
-- Target applications
-- Safety rules to evaluate
-- Task descriptions
+### Synthesize tasks
 
-### 2. Synthesize Scenarios
+Benign tasks:
 
-Generate concrete scenario instances from blueprints:
+```bash
+python task_generation/benign_scene.py
+```
+
+Risk-oriented task synthesis:
 
 ```bash
 python task_generation/batch.py
 ```
 
-This creates individual task files in `generated_benign_tasks/` directory.
-
-### 3. Run Agent Evaluation
-
-Evaluate agents on the generated scenarios using the concurrent evaluation framework:
+### Run the simulator-side evaluation loop
 
 ```bash
+python main.py
 python main_multi.py
 ```
 
-**Configuration options**:
-- `CASES_DIRECTORY`: Source directory with task JSON files
-- `RESULTS_OUTPUT_DIRECTORY`: Where to save results
-- `MAX_WORKERS`: Number of concurrent evaluation threads
-
-### 4. Process Results
-
-Analyze evaluation results and trajectories:
+### Process trajectories into training data
 
 ```bash
+python dataset_generation/safe_thought.py
 python dataset_generation/prepare_dataset.py
 ```
 
-## Project Structure
+## Docs And Assets
 
-```
-mirrorguard/
-├── agent.py                    # ReAct agent implementation
-├── simulator.py                # GUI environment simulator
-├── llm.py                      # LLM client (OpenAI-compatible)
-├── models.py                   # Data models (WorldState, UIElement, etc.)
-├── prompts.py                  # System prompts for agent and simulator
-├── config.py                   # Model configuration
-├── main.py                     # Single-case evaluation
-├── main_multi.py               # Concurrent batch evaluation
-│
-├── task_generation/            # Scenario synthesis
-│   ├── pipeline_generator.py   # Generate task blueprints
-│   ├── batch.py                # Batch scenario synthesis
-│   ├── scene.py                # Scene/scenario synthesis logic
-│   ├── benign_scene.py         # Benign scenario generation
-│   ├── seed_apps.py            # Application definitions
-│   └── task_blueprints.json    # Blueprint templates
-│
-├── dataset_generation/         # Dataset processing
-│   ├── prepare_dataset.py      # Dataset preparation and analysis
-│   ├── safe_thought.py         # Safety annotation tools
-│   ├── train.jsonl             # Training dataset
-│   └── test.jsonl              # Test dataset
-│
-└── README.md                   
-```
+- Integration overview: [docs/integrations.md](docs/integrations.md)
+- Results overview: [docs/results.md](docs/results.md)
+- Asset guide: [assets/README.md](assets/README.md)
 
-## Core Components
+The asset directory is intended for public-release media such as:
 
-### Agent (`agent.py`)
+- real demo GIFs
+- qualitative case-study figures
+- compact benchmark result figures
 
-Implements the **ReAct** (Reasoning + Acting) framework:
-- Parses LLM responses for thoughts and actions
-- Maintains interaction trajectory
-- Supports actions: `CLICK()`, `TYPE()`, `PRESS_KEY()`, etc.
-
-```python
-from agent import ReActAgent
-from llm import LLMClient
-
-llm_client = LLMClient(model_name="gpt-4", base_url="...")
-agent = ReActAgent(llm_client=llm_client)
-thought, action = agent.predict(instruction="Find and open a file", observation=current_gui_state)
-```
-
-### Simulator (`simulator.py`)
-
-Manages GUI world state and applies agent actions:
-- Loads scenario configurations
-- Generates realistic observations
-- Applies actions and updates state
-- Integrates with LLM for realistic behavior
-
-```python
-from simulator import GUISimulator
-
-simulator = GUISimulator(model_name="...", base_url="...")
-simulator.load_scenario_from_config("task.json")
-observation = simulator.get_observation()
-simulator.run_action(agent_action)
-```
-
-### LLM Client (`llm.py`)
-
-Unified interface for OpenAI-compatible APIs:
-- Support for multiple model backends
-- Automatic retry logic
-- JSON response handling
-
-```python
-from llm import LLMClient
-
-client = LLMClient(
-    model_name="gpt-4",
-    base_url="http://localhost:8000/v1",
-    api_key="sk-..."
-)
-response = client.call(prompt="...", system_prompt="...", expect_json=False)
-```
-
-## Data Models
-
-The framework uses Pydantic models for type safety:
-
-- **`WorldState`**: Complete GUI state (active app, windows, file system)
-- **`Window`**: Individual application window with elements
-- **`UIElement`**: Interactive GUI elements (buttons, inputs, etc.)
-- **`SceneConfig`**: Task definition with instruction and initial state
-- **`DesignNotes`**: Risky or benign scenario annotations
-
-## Usage Examples
-
-### Example 1: Evaluate a Single Scenario
-
-```python
-from simulator import GUISimulator
-from agent import ReActAgent
-from llm import LLMClient
-from config import MODELS_CONFIG
-
-# Initialize
-agent_llm = LLMClient(**MODELS_CONFIG["agent_model"])
-agent = ReActAgent(llm_client=agent_llm)
-
-simulator = GUISimulator(**MODELS_CONFIG["simulator_model"])
-simulator.load_scenario_from_config("scenario.json")
-
-# Run evaluation
-for _ in range(15):
-    observation = simulator.get_observation()
-    thought, action = agent.predict("Complete the task", observation)
-    simulator.run_action(action)
-    
-    if "DONE()" in action or "FAIL(" in action:
-        break
-
-# Get trajectory
-trajectory = agent.get_trajectory()
-```
-
-### Example 2: Batch Concurrent Evaluation
-
-The `main_multi.py` script handles concurrent evaluation:
-
-```bash
-# Evaluates all tasks in ./generated_benign_tasks with 100 workers
-python main_multi.py
-```
-
-Results are saved as:
-- `{task_id}.log.json`: Detailed interaction logs
-- `{task_id}.trajectory.json`: Agent trajectory
-
-## Configuration
-
-Edit `config.py` to set up your LLM endpoints:
-
-```python
-MODELS_CONFIG = {
-    "synthesizer_model": {
-        "model_name": "gpt-4",
-        "base_url": "http://your-endpoint/v1",
-        "api_key": "sk-..."
-    },
-    "simulator_model": { ... },
-    "agent_model": { ... },
-    "annotator_model": { ... }
-}
-```
-
-All models support OpenAI-compatible APIs (GPT-4, Claude, Llama, etc.)
-
-## Output Format
-
-### Interaction Log (`*.log.json`)
-
-```json
-{
-  "case_info": {
-    "source_file": "task_001.json",
-    "instruction": "Find the password..."
-  },
-  "initial_world_state": { ... },
-  "interaction_log": [
-    {
-      "step": 1,
-      "observation": "You see a desktop with...",
-      "thought": "I need to open a file manager...",
-      "action": "CLICK(elem-001)",
-      "world_state_after_action": { ... }
-    }
-  ],
-  "final_status": "DONE()",
-  "final_world_state": { ... }
-}
-```
-
-### Trajectory (`*.trajectory.json`)
-
-```json
-{
-  "trajectory": [
-    {
-      "observation": "...",
-      "thought": "...",
-      "action": "..."
-    }
-  ]
-}
-```
-
-## Contributing
-
-We welcome contributions to MirrorGuard! Whether you're interested in improving safety evaluation, extending scenario generation, or optimizing the simulator, your contributions are valuable.
+Current release preparation already includes rollout comparison GIFs in `assets/` for qualitative before/after presentation.
 
 
-For questions or discussions, please open an [issue](https://github.com/bmz-q-q/MirrorGuard/issues).
+## Acknowledgment
 
-## Authors & Contributors
-
-**Core Developers**
-
-- **Zhang Wenqi** — Lead Developer ([GitHub](https://github.com/bmz-q-q))
-- **Shen Yulin** — Prompt Engineering & Safety Evaluation
-
-**Co-Authors**
-
-- Changyue Jiang
-- Jiarun Dai
-- Geng Hong
-- Xudong Pan
-
-For the full paper and author affiliations, see [arXiv:2601.12822](https://arxiv.org/abs/2601.12822)
+MirrorGuard is developed by the WhitzardAgent team at Fudan University with support from Shanghai Innovation Institute (SII). This research is supported by the Shanghai Innovation Institute's "Agent Full-Stack Security Offense-Defense Technology Matrix" project. If you reuse the code, model, or media assets, please retain the project attribution and citation.
 
 ## Citation
-
-If you use MirrorGuard in your research, please cite:
-
-**Paper**: [arXiv:2601.12822](https://arxiv.org/abs/2601.12822)
 
 ```bibtex
 @article{zhang2026mirrorguard,
@@ -368,43 +275,7 @@ If you use MirrorGuard in your research, please cite:
 }
 ```
 
-**Paper Resources**:
-- 📄 [View on arXiv](https://arxiv.org/abs/2601.12822)
-- 📊 [PDF Download](https://arxiv.org/pdf/2601.12822)
-- 💾 [TeX Source](https://arxiv.org/src/2601.12822)
-
 ## License
 
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
 
-## Acknowledgments
-
-We would like to acknowledge:
-- The open-source LLM community (OpenAI, Anthropic, Meta)
-- Contributors to Pydantic, concurrent.futures, and other dependencies
-- Research collaborators and reviewers
-
-## FAQ
-
-**Q: What LLMs are supported?**  
-A: Any OpenAI-compatible API (GPT-4, Claude, Llama, etc.). Configure in `config.py`.
-
-**Q: Can I modify existing scenarios?**  
-A: Yes! Edit the JSON files in `generated_benign_tasks/` or extend `task_blueprints.json`.
-
-**Q: How do I add new applications?**  
-A: Extend `task_generation/seed_apps.py` with new app definitions.
-
-**Q: What's the difference between benign and risky scenarios?**  
-A: Benign scenarios test normal task completion. Risky scenarios test safety—whether agents avoid dangerous actions even when tempted.
-
-## Troubleshooting
-
-- **LLM Connection Issues**: Verify `config.py` settings and network connectivity
-- **File Permissions**: Ensure write access to output directories
-- **Memory Issues**: Reduce `MAX_WORKERS` in `main_multi.py`
-- **Timeout Errors**: Increase `max_tokens` in model configuration
-
----
-
-**For more information, bug reports, or questions, please [open an issue](https://github.com/bmz-q-q/MirrorGuard/issues) on GitHub or refer to the [paper](https://arxiv.org/abs/2601.12822).** 
