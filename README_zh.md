@@ -123,6 +123,146 @@ benchmark 角色与论文保持一致：
 
 模型卡中已经给出了推荐的 OpenAI-compatible 部署方式和 `vllm serve` 示例。`examples/shared/correction_runtime.py` 采用的就是这一路径。
 
+## 安装
+
+MirrorGuard 依赖 Python 3.8+ 与 OpenAI-compatible 模型服务端点。
+
+```bash
+pip install -r requirements.txt
+```
+
+运行评测脚本前，请先在 `config.py` 中配置模型端点。默认配置包含 `synthesizer_model`、`simulator_model`、`agent_model` 和 `annotator_model` 四类模型。
+
+## 快速开始
+
+### 生成任务蓝图
+
+```bash
+python task_generation/pipeline_generator.py
+```
+
+### 合成任务
+
+良性任务：
+
+```bash
+python task_generation/benign_scene.py
+```
+
+风险任务合成：
+
+```bash
+python task_generation/batch.py
+```
+
+### 运行模拟评测
+
+```bash
+python main.py
+python main_multi.py
+```
+
+### 处理轨迹并生成训练数据
+
+```bash
+python dataset_generation/safe_thought.py
+python dataset_generation/prepare_dataset.py
+```
+
+## 核心组件
+
+MirrorGuard 由一组可复用模块组成：
+
+- `agent.py`：ReAct 风格 agent 封装，将 observation 转换为 thought 与 action。
+- `simulator.py`：GUI 世界模拟器，负责加载场景、提供 observation、执行 action 并更新状态。
+- `llm.py`：OpenAI-compatible 的统一调用客户端。
+- `models.py`：world state、任务配置、设计注释等 Pydantic 数据模型。
+- `task_generation/`：任务蓝图与场景合成流程。
+- `dataset_generation/`：思维矫正与训练数据整理流程。
+
+## 数据模型
+
+运行时与数据合成阶段主要使用以下 Pydantic 模型：
+
+- `UIElement`：单个可交互 GUI 元素，包含标签、取值和可用性。
+- `Window`：应用窗口及其包含的 GUI 元素集合。
+- `WorldState`：完整模拟状态，包含当前激活应用、窗口列表、文件系统等。
+- `SceneConfig`：任务定义，包含 `task_id`、`instruction`、`initial_state` 与 `design_notes`。
+- `RiskyDesignNotes` / `BenignDesignNotes`：分别描述风险场景期望安全行为与良性场景执行路径。
+
+## 使用示例
+
+### 单任务评测
+
+```python
+from agent import ReActAgent
+from config import MODELS_CONFIG
+from llm import LLMClient
+from simulator import GUISimulator
+
+agent = ReActAgent(LLMClient(**MODELS_CONFIG["agent_model"]))
+simulator = GUISimulator(**MODELS_CONFIG["simulator_model"])
+simulator.load_scenario_from_config("scenario.json")
+
+instruction = simulator.instruction
+for _ in range(15):
+    observation = simulator.get_observation()
+    thought, action = agent.predict(instruction, observation)
+    simulator.run_action(action)
+    if "DONE()" in action or "FAIL(" in action or "WAIT()" in action:
+        break
+```
+
+### 批量评测
+
+```bash
+python main.py
+python main_multi.py
+```
+
+### 数据处理
+
+```bash
+python dataset_generation/safe_thought.py
+python dataset_generation/prepare_dataset.py
+```
+
+## 输出格式
+
+评测脚本通常为每个任务输出两类文件：
+
+- `*.log.json`：完整交互日志，包含指令、初始状态、每步 observation/thought/action 以及最终状态。
+- `*.trajectory.json`：更精简的轨迹文件，用于记录逐步 reasoning/action 序列。
+
+日志示例结构：
+
+```json
+{
+  "case_info": {
+    "source_file": "task_001.json",
+    "instruction": "..."
+  },
+  "initial_world_state": { "...": "..." },
+  "interaction_log": [
+    {
+      "step": 1,
+      "observation": "...",
+      "thought": "...",
+      "action": "...",
+      "world_state_after_action": { "...": "..." }
+    }
+  ],
+  "final_status": "DONE()",
+  "final_world_state": { "...": "..." }
+}
+```
+
+## 作者与贡献者
+
+MirrorGuard 核心作者包括 Wenqi Zhang、Yulin Shen、Changyue Jiang、Jiarun Dai、Geng Hong、Xudong Pan。
+
+项目由复旦大学与上海创智学院（SII）WhitzardAgent 团队研发，当前发布版本请保留论文作者与团队归属信息。
+
 ## 致谢与归属
 
 MirrorGuard 由 **WhitzardAgent** 团队完成，成果归属于 **复旦大学** 与 **Shanghai Innovation Institute (SII)**。本研究得到上海创智学院"智能体全栈安全攻防技术矩阵"项目的支持。如果你复用代码、模型或展示素材，请保留项目归属与引用信息。

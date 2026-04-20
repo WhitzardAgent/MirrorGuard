@@ -82,7 +82,7 @@ This design is meant to reduce the usual security-utility trade-off caused by pu
 From the paper:
 
 - On **UI-TARS**, MirrorGuard reduces **Unsafe Rate** from **66.5%** to **13.0%** while maintaining a marginal **False Refusal Rate (FRR)**.
-- Compared with **GuardAgent**, MirrorGuard achieves stronger risk mitigation with lower utility penalty.
+- Compared with GuardAgent, MirrorGuard achieves stronger risk mitigation with lower utility penalty.
 - On **OSWorld**, the method is evaluated for utility preservation using **Success Rate (SR)**.
 
 Benchmark roles follow the paper:
@@ -104,9 +104,6 @@ MirrorGuard/
   main_multi.py
   task_generation/
   dataset_generation/
-  docs/
-    integrations.md
-    results.md
   examples/
     shared/
     react_integration/
@@ -195,21 +192,17 @@ OSWorld-style and upstream references:
 
 This file shows a minimal OpenAI-compatible deployment runtime for the deployed MirrorGuard VLM.
 
-## Quick Start
+## Installation
 
-### Install dependencies
+MirrorGuard targets Python 3.8+ and an OpenAI-compatible model endpoint.
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Access the deployed model
+Configure your model endpoints in `config.py` before running the evaluation scripts. The default layout uses separate entries for `synthesizer_model`, `simulator_model`, `agent_model`, and `annotator_model`.
 
-The released MirrorGuard VLM is available on Hugging Face:
-
-- [WhitzardAgent/MirrorGuard](https://huggingface.co/WhitzardAgent/MirrorGuard)
-
-The model card includes the recommended OpenAI-compatible deployment path and a `vllm serve` example. The shared runtime in `examples/shared/correction_runtime.py` assumes that kind of OpenAI-compatible endpoint rather than a task-specific wrapper.
+## Quick Start
 
 ### Generate task blueprints
 
@@ -245,19 +238,97 @@ python dataset_generation/safe_thought.py
 python dataset_generation/prepare_dataset.py
 ```
 
-## Docs And Assets
+## Core Components
 
-- Integration overview: [docs/integrations.md](docs/integrations.md)
-- Results overview: [docs/results.md](docs/results.md)
-- Asset guide: [assets/README.md](assets/README.md)
+MirrorGuard is split into a small set of reusable modules:
 
-The asset directory is intended for public-release media such as:
+- `agent.py`: ReAct-style agent wrapper that turns observations into thoughts and actions.
+- `simulator.py`: GUI world simulator that loads scenarios, exposes observations, and applies actions.
+- `llm.py`: OpenAI-compatible client abstraction used across the pipeline.
+- `models.py`: Pydantic data models for world state, tasks, and design notes.
+- `task_generation/`: task blueprint and scenario synthesis utilities.
+- `dataset_generation/`: thought correction and training-data preparation scripts.
 
-- real demo GIFs
-- qualitative case-study figures
-- compact benchmark result figures
+## Data Models
 
-Current release preparation already includes rollout comparison GIFs in `assets/` for qualitative before/after presentation.
+The runtime and synthesis pipeline use a compact set of Pydantic models:
+
+- `UIElement`: a single interactive GUI element with label, value, and enabled state.
+- `Window`: an application window containing a list of GUI elements.
+- `WorldState`: the full simulator state, including active app, windows, and file system.
+- `SceneConfig`: a task definition with `task_id`, `instruction`, `initial_state`, and `design_notes`.
+- `RiskyDesignNotes` / `BenignDesignNotes`: annotations that describe the expected safe behavior and task path.
+
+## Usage Examples
+
+### Single-case evaluation
+
+```python
+from agent import ReActAgent
+from config import MODELS_CONFIG
+from llm import LLMClient
+from simulator import GUISimulator
+
+agent = ReActAgent(LLMClient(**MODELS_CONFIG["agent_model"]))
+simulator = GUISimulator(**MODELS_CONFIG["simulator_model"])
+simulator.load_scenario_from_config("scenario.json")
+
+instruction = simulator.instruction
+for _ in range(15):
+    observation = simulator.get_observation()
+    thought, action = agent.predict(instruction, observation)
+    simulator.run_action(action)
+    if "DONE()" in action or "FAIL(" in action or "WAIT()" in action:
+        break
+```
+
+### Batch evaluation
+
+```bash
+python main.py
+python main_multi.py
+```
+
+### Dataset preparation
+
+```bash
+python dataset_generation/safe_thought.py
+python dataset_generation/prepare_dataset.py
+```
+
+## Output Format
+
+Evaluation scripts write two files per case:
+
+- `*.log.json`: a detailed interaction log with the instruction, initial state, per-step observations, thoughts, actions, and final world state.
+- `*.trajectory.json`: a compact trajectory export containing the agent's step-by-step reasoning/action sequence.
+
+Example log structure:
+
+```json
+{
+  "case_info": {
+    "source_file": "task_001.json",
+    "instruction": "..."
+  },
+  "initial_world_state": { "...": "..." },
+  "interaction_log": [
+    {
+      "step": 1,
+      "observation": "...",
+      "thought": "...",
+      "action": "...",
+      "world_state_after_action": { "...": "..." }
+    }
+  ],
+  "final_status": "DONE()",
+  "final_world_state": { "...": "..." }
+}
+```
+
+## Authors & Contributors
+
+Core authors of MirrorGuard are Wenqi Zhang, Yulin Shen, Changyue Jiang, Jiarun Dai, Geng Hong, and Xudong Pan.
 
 
 ## Acknowledgment
