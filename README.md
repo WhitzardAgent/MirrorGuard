@@ -12,7 +12,7 @@
 
 **MirrorGuard: Toward Secure Computer-Use Agents via Simulation-to-Real Reasoning Correction**
 
-**WhitzardAgent | Fudan University | Shanghai Innovation Institute (SII)**
+**WhitzardAgent | Shanghai Innovation Institute (SII) | Fudan University**
 
 [Paper](https://arxiv.org/abs/2601.12822) | [Project Page](https://bmz-q-q.github.io/MirrorGuard/) | [Model](https://huggingface.co/WhitzardAgent/MirrorGuard) | [Chinese README](README_zh.md)
 

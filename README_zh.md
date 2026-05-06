@@ -10,7 +10,7 @@
 
 **MirrorGuard: Toward Secure Computer-Use Agents via Simulation-to-Real Reasoning Correction**
 
-**WhitzardAgent | 复旦大学 | Shanghai Innovation Institute (SII)**
+**WhitzardAgent | 上海创智学院 | 复旦大学 **
 
 </div>
 
